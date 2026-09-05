@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Your Visit</title>
+</head>
+<body>
+  <script>
+    const path = window.location.pathname.replace(/\/+$/, '');
+    const basePath = path.slice(0, path.lastIndexOf('/') + 1) || '/';
+
+    fetch(basePath + 'index.html')
+      .then(response => {
+        if (!response.ok) throw new Error('Unable to load the app');
+        return response.text();
+      })
+      .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(() => {
+        document.body.textContent = 'This review link is unavailable.';
+      });
+  </script>
+</body>
+</html>
