@@ -1,0 +1,484 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rate Your Visit</title>
+<style>
+  :root{
+    --paper:#FAF8F3;
+    --ink:#232120;
+    --ink-soft:#6b6560;
+    --gold:#C69214;
+    --gold-dim:#e4d4ab;
+    --line:#e6e1d6;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:24px;
+    opacity:0;
+    animation:pageFadeIn .45s ease forwards;
+    transition:background .25s ease, opacity .25s ease;
+  }
+
+  @keyframes pageFadeIn {
+    from {
+      opacity:0;
+      transform:translateY(6px);
+    }
+    to {
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
+
+  body.dimmed{
+    background:#fff;
+    opacity:1;
+    pointer-events:none;
+  }
+
+  body.dimmed .card{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity .25s ease, visibility .25s ease;
+  }
+
+  body.redirecting .card{
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+  }
+
+  .card{
+    width:100%;
+    max-width:400px;
+    text-align:center;
+  }
+
+  .mark{
+    width:44px;
+    height:44px;
+    margin:0 auto 28px;
+    border:1.5px solid var(--ink);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+  }
+
+  h1{
+    font-size:24px;
+    line-height:1.3;
+    font-weight:600;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+
+  p.sub{
+    color:var(--ink-soft);
+    font-size:15px;
+    line-height:1.5;
+    margin:0 0 40px;
+  }
+
+  .stars{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:12px;
+  }
+
+  .star-btn{
+    background:none;
+    border:none;
+    padding:6px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+
+  .star-btn svg{
+    width:42px;
+    height:42px;
+    display:block;
+    transition:transform .15s ease;
+  }
+
+  .star-btn:active svg{
+    transform:scale(0.88);
+  }
+
+  @keyframes starWiggle{
+    0%,100%{transform:rotate(0deg);}
+    25%{transform:rotate(-7deg);}
+    50%{transform:rotate(6deg);}
+    75%{transform:rotate(-3deg);}
+  }
+
+  .star-btn:nth-child(5){
+    animation:starWiggle .65s ease-in-out .55s both;
+  }
+
+  .star-path{
+    fill:none;
+    stroke:var(--ink);
+    stroke-width:1.4;
+    transition:fill .15s ease, stroke .15s ease;
+  }
+
+  .star-btn.filled .star-path{
+    fill:var(--gold);
+    stroke:var(--gold);
+  }
+
+  .rating-label{
+    min-height:20px;
+    font-size:14px;
+    color:var(--ink-soft);
+    margin-bottom:36px;
+  }
+
+  .continue{
+    width:100%;
+    min-height:48px;
+    padding:15px;
+    border-radius:10px;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    opacity:0;
+    transform:translateY(6px);
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease, background-color .15s ease;
+  }
+
+  .continue.ready{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+
+  .continue:active{
+    background:var(--gold);
+  }
+
+  @media (hover:hover){
+    .continue:hover{
+      background:var(--gold);
+    }
+  }
+
+  footer{
+    margin-top:32px;
+    font-size:12px;
+    color:#a8a29a;
+  }
+
+  /* overlay */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(35,33,32,0.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease;
+    z-index:10;
+  }
+  .overlay.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .redirect-loader{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--paper);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+    z-index:20;
+  }
+
+  .redirect-loader.show{
+    opacity:1;
+  }
+
+  .loader-mark{
+    width:56px;
+    height:56px;
+    border:1.5px solid var(--ink);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:23px;
+    animation:loaderPulse .8s ease-in-out infinite alternate;
+  }
+
+  @keyframes loaderPulse{
+    from{transform:scale(.9) rotate(-8deg);}
+    to{transform:scale(1.08) rotate(8deg);}
+  }
+
+  .sheet{
+    background:var(--paper);
+    border-radius:16px;
+    max-width:360px;
+    width:100%;
+    padding:32px 28px;
+    text-align:center;
+    transform:translateY(10px);
+    transition:transform .25s ease;
+  }
+
+  @keyframes reviewMessageFadeIn{
+    from{
+      opacity:0;
+      transform:translateY(8px);
+    }
+    to{
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
+
+  .card .sheet{
+    width:100%;
+    margin:0 auto;
+    animation:reviewMessageFadeIn .3s ease both;
+    transform:none;
+  }
+
+  @media (max-width:420px){
+    .card .sheet{
+      padding:28px 22px;
+    }
+  }
+
+  .overlay.show .sheet{
+    transform:translateY(0);
+  }
+
+  .sheet .icon{
+    width:48px;
+    height:48px;
+    margin:0 auto 20px;
+    border-radius:50%;
+    background:var(--gold-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .sheet h2{
+    font-size:19px;
+    margin:0 0 8px;
+    font-weight:600;
+  }
+
+  .sheet p{
+    font-size:14px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin:0 0 24px;
+  }
+
+  .sheet button{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--ink);
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  .not-found{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:15px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+  <div class="card" id="card">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Low-score thank you overlay -->
+  <div class="overlay" id="overlay">
+    <div class="sheet">
+      <div class="icon">🙏</div>
+      <h2>Merci pour votre avis.</h2>
+      <p>Nous sommes désolés que votre visite n'ait pas été parfaite. Votre évaluation a été prise en compte et nous l'utiliserons pour faire mieux.</p>
+      <button id="closeSheet">Fermer</button>
+    </div>
+  </div>
+
+  <div class="redirect-loader" id="redirectLoader" aria-label="Chargement" role="status">
+    <div class="loader-mark">✦</div>
+  </div>
+
+<script>
+  // =========================================================
+  // STORE CONFIG — one entry per store. Add a 6th by copying
+  // one block and giving it a new key (the slug used in the URL).
+  // Slug "store1" below means the NFC card points to: ryan zamel
+  //   yoursite.com/store1   (or yoursite.com/?s=store1, see notes)
+  // =========================================================
+  const STORES = {
+    store1: {
+      name: "si lbar9o9i",
+      reviewUrl: "https://g.page/r/REPLACE_WITH_STORE1_PLACE_ID/review"
+    },
+    store2: {
+      name: "si smokawi",
+      reviewUrl: "https://g.page/r/REPLACE_WITH_STORE2_PLACE_ID/review"
+    },
+    store3: {
+      name: "si l3azwani",
+      reviewUrl: "https://g.page/r/REPLACE_WITH_STORE3_PLACE_ID/review"
+    },
+    store4: {
+      name: "Si lmangoli",
+      reviewUrl: "https://g.page/r/REPLACE_WITH_STORE4_PLACE_ID/review"
+    },
+    store5: {
+      name: "Store 5",
+      reviewUrl: "https://g.page/r/REPLACE_WITH_STORE5_PLACE_ID/review"
+    }
+    // store6: {
+    //   name: "Store 6",
+    //   reviewUrl: "https://g.page/r/REPLACE_WITH_STORE6_PLACE_ID/review"
+    // },
+  };
+
+  const THRESHOLD = 3; // stars >= this go to Google, below this shows the popup
+
+  // ---- Figure out which store this visit is for ----
+  // Supports BOTH styles so it works with zero server config:
+  //   yoursite.com/store1          (clean path, needs a redirect rule — see notes below the code)
+  //   yoursite.com/?s=store1       (query param, works on literally any static host, no setup)
+  function getSlug() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('s')) return params.get('s');
+
+    const path = window.location.pathname.replace(/\/$/, ''); // strip trailing slash
+    const parts = path.split('/').filter(Boolean);
+    return parts[parts.length - 1] || null;
+  }
+
+  const slug = getSlug();
+  const store = STORES[slug];
+  const card = document.getElementById('card');
+
+  if (!store) {
+    card.innerHTML = `
+      <div class="not-found">
+        <p>This review link isn't set up yet.<br>Please let the front desk know.</p>
+      </div>
+    `;
+  } else {
+    card.innerHTML = `
+      <div class="mark">⚡</div>
+      <h1>Comment s’est passée votre visite à ${store.name}?</h1>
+      <p class="sub">Appuyez sur une étoile pour évaluer votre expérience.</p>
+
+      <div class="stars" id="stars"></div>
+      <div class="rating-label" id="ratingLabel">&nbsp;</div>
+
+      <button class="continue" id="continueBtn">Continuer</button>
+
+      <footer>Votre évaluation nous aide à nous améliorer.</footer>
+    `;
+
+    const starsContainer = document.getElementById('stars');
+    const ratingLabel = document.getElementById('ratingLabel');
+    const continueBtn = document.getElementById('continueBtn');
+    const overlay = document.getElementById('overlay');
+    const closeSheet = document.getElementById('closeSheet');
+    const redirectLoader = document.getElementById('redirectLoader');
+
+    const labels = ["", "Insuffisant", "Moyen", "Bien", "Très bien", "Excellent"];
+    let selected = 0;
+
+    const starSVG = `<svg viewBox="0 0 24 24"><path class="star-path" d="M12 2.5l2.9 6.2 6.6.7-4.9 4.6 1.3 6.7L12 17.6l-5.9 3.1 1.3-6.7-4.9-4.6 6.6-.7L12 2.5z"/></svg>`;
+
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'star-btn';
+      btn.setAttribute('aria-label', i + ' star' + (i > 1 ? 's' : ''));
+      btn.dataset.value = i;
+      btn.innerHTML = starSVG;
+      btn.addEventListener('click', () => setRating(i));
+      starsContainer.appendChild(btn);
+    }
+
+    function setRating(value) {
+      selected = value;
+      [...starsContainer.children].forEach((btn, idx) => {
+        btn.classList.toggle('filled', idx < value);
+      });
+      ratingLabel.textContent = labels[value];
+      continueBtn.classList.add('ready');
+    }
+
+    continueBtn.addEventListener('click', () => {
+      if (!selected) return;
+      if (selected >= THRESHOLD) {
+        document.body.classList.add('redirecting');
+        redirectLoader.classList.add('show');
+        setTimeout(() => {
+          window.location.href = store.reviewUrl;
+        }, 650);
+      } else {
+        card.innerHTML = `
+          <div class="sheet">
+            <div class="icon">🙏</div>
+            <h2>Merci pour votre avis.</h2>
+            <p>Nous sommes désolés que votre visite n'ait pas été parfaite. Votre évaluation a été prise en compte et nous l'utiliserons pour faire mieux.</p>
+          </div>
+        `;
+      }
+    });
+
+    closeSheet.addEventListener('click', () => {
+      overlay.classList.remove('show');
+    });
+  }
+</script>
+
+</body>
+</html>
+
+
+
+
